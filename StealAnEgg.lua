@@ -1,11 +1,6 @@
-siikon bypass
-
-mod made by siikon
-
-```lua
 -- =====================================================================
--- SIIKON BYPASS | STEAL AN EGG ULTIMATE
--- Clean NonUI interface + Quick Egg Pickup + TP Home
+-- SIIKON BYPASS | STEAL AN EGG ULTIMATE v3.1
+-- Fixed UI - Proper sizing, working buttons, drag & minimize
 -- =====================================================================
 
 local genv = (type(getgenv) == "function" and getgenv()) or _G or shared or {}
@@ -82,47 +77,39 @@ local function QuickGrab()
     local root = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
     if not root then return end
     
-    -- Patch prompts
     for _, c in ipairs(workspace:GetChildren()) do
         if c.Name == "SmartPromptPart" then
             for _, p in ipairs(c:GetChildren()) do
                 if p.ClassName == "ProximityPrompt" then
-                    local parentName = p.Parent and p.Parent.Name or ""
-                    if parentName == "SmartPromptPart" or parentName:find("Egg") then
-                        pcall(function()
-                            p.HoldDuration = 0.0
-                            p.MaxActivationDistance = 25.0
-                            p.RequiresLineOfSight = false
-                        end)
-                        if fireproximityprompt then
-                            pcall(fireproximityprompt, p, 0)
-                        end
+                    pcall(function()
+                        p.HoldDuration = 0.0
+                        p.MaxActivationDistance = 25.0
+                        p.RequiresLineOfSight = false
+                    end)
+                    if fireproximityprompt then
+                        pcall(fireproximityprompt, p, 0)
                     end
                 end
             end
         end
     end
     
-    -- Grab nearby eggs
     for _, c in ipairs(workspace:GetChildren()) do
         if c.Name == "SmartPromptPart" and c.Position then
             if (c.Position - root.Position).Magnitude <= 25 then
                 local prompt = c:FindFirstChildWhichIsA("ProximityPrompt")
                 if prompt then
-                    local parentName = prompt.Parent and prompt.Parent.Name or ""
-                    if parentName == "SmartPromptPart" or parentName:find("Egg") then
-                        pcall(function()
-                            fireproximityprompt(prompt, 0)
-                            prompt:InputHoldBegin()
-                            task.wait(0.01)
-                            prompt:InputHoldEnd()
-                        end)
-                        pcall(function()
-                            keypress(0x45)
-                            task.wait(0.02)
-                            keyrelease(0x45)
-                        end)
-                    end
+                    pcall(function()
+                        fireproximityprompt(prompt, 0)
+                        prompt:InputHoldBegin()
+                        task.wait(0.01)
+                        prompt:InputHoldEnd()
+                    end)
+                    pcall(function()
+                        keypress(0x45)
+                        task.wait(0.02)
+                        keyrelease(0x45)
+                    end)
                 end
             end
         end
@@ -153,15 +140,12 @@ local function TpHome()
         Notify("Siikon", "Set Home first!", 2)
         return
     end
-    -- Quick grab before TP
     QuickGrab()
     task.wait(0.05)
-    -- TP spam
     for i = 1, State.SpamCount do
         TeleportCharacter(State.HomeCFrame)
         task.wait(State.SpamDelay)
     end
-    -- Quick grab after TP
     task.wait(0.05)
     QuickGrab()
     Notify("Siikon", "TP Home + Quick Grab!", 2)
@@ -233,21 +217,29 @@ local function IsHotkeyPressed(input)
 end
 
 -- =====================================================================
--- 7. CREATE NONUI WINDOW
+-- 7. CREATE NONUI WINDOW (PROPER SIZE)
 -- =====================================================================
 local Window = NonUI:CreateWindow({
     Title = "Siikon Bypass",
-    Author = "v3.0",
+    Author = "v3.1",
     Folder = "SiikonBypass",
     Theme = "Dark",
-    Size = { 380, 280 },
-    OpenButton = { Title = "Siikon", Draggable = true, Scale = 0.9 }
+    Size = { 520, 380 },
+    OpenButton = { Title = "Siikon", Draggable = true, Scale = 1 },
+    Resizable = true,
+    MinSize = { 400, 300 },
+    OnOpen = function()
+        print("Window opened")
+    end,
+    OnClose = function()
+        print("Window closed")
+    end,
 })
 
 -- =====================================================================
 -- 8. MAIN TAB
 -- =====================================================================
-local MainSection = Window:Section({ Title = "Controls" })
+local MainSection = Window:Section({ Title = "Controls", Box = true })
 local MainTab = MainSection:Tab({ Title = "Main", Icon = "home" })
 
 -- Set Home Button
@@ -299,23 +291,33 @@ MainTab:Slider({
     end
 })
 
+-- Quick Grab Toggle (always on, just for info)
+MainTab:Toggle({
+    Title = "Quick Egg Pickup",
+    Value = true,
+    Callback = function(on)
+        Notify("Siikon", "Quick Egg Pickup is always enabled!", 2)
+    end
+})
+
 -- =====================================================================
 -- 9. INFO TAB
 -- =====================================================================
-local InfoSection = Window:Section({ Title = "Info" })
+local InfoSection = Window:Section({ Title = "Information", Box = true })
 local InfoTab = InfoSection:Tab({ Title = "Status", Icon = "info" })
 
 InfoTab:Paragraph({
-    Title = "Siikon Bypass v3.0",
+    Title = "Siikon Bypass v3.1",
     Desc = "Quick Egg Pickup is always enabled.\nPress your hotkey to TP Home + Grab eggs."
 })
 
 InfoTab:Paragraph({
-    Title = "Status",
+    Title = "Live Status",
     Desc = function()
-        return "Home: " .. (State.HomeCFrame and "Set ✅" or "Not Set ❌") ..
+        return "Home: " .. (State.HomeCFrame and "✅ Set" or "❌ Not Set") ..
             "\nHotkey: " .. State.Hotkey ..
-            "\nSpam Count: " .. State.SpamCount
+            "\nSpam Count: " .. State.SpamCount ..
+            "\n\nEggs: Auto-grab is always active!"
     end
 })
 
@@ -344,12 +346,11 @@ task.spawn(function()
                 if c.Name == "SmartPromptPart" then
                     for _, p in ipairs(c:GetChildren()) do
                         if p.ClassName == "ProximityPrompt" then
-                            local parentName = p.Parent and p.Parent.Name or ""
-                            if parentName == "SmartPromptPart" or parentName:find("Egg") then
+                            pcall(function()
                                 p.HoldDuration = 0.0
                                 p.MaxActivationDistance = 25.0
                                 p.RequiresLineOfSight = false
-                            end
+                            end)
                         end
                     end
                 end
@@ -365,11 +366,26 @@ task.spawn(function()
     task.wait(1.5)
     local char = LocalPlayer.Character
     local hrp = char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
-    if hrp then
+    if hrp and not State.HomeCFrame then
         State.HomeCFrame = hrp.CFrame
         Notify("Siikon", "Home auto-set! Press " .. State.Hotkey .. " to TP", 2)
     end
 end)
 
-Notify("Siikon Bypass", "Loaded! Quick Egg Pickup always active.", 3)
-```
+-- =====================================================================
+-- 13. OPEN WINDOW ON START
+-- =====================================================================
+Window:Open()
+
+Notify("Siikon Bypass", "Loaded! Quick Egg Pickup always active. F1 to toggle menu.", 3)
+
+-- =====================================================================
+-- 14. FIX: Make sure the UI actually works - force refresh
+-- =====================================================================
+task.spawn(function()
+    task.wait(0.1)
+    -- Force UI refresh
+    pcall(function()
+        Window:Open()
+    end)
+end)
